@@ -1,33 +1,66 @@
 import math
+import pygame
 
-DRAG_POWER = .5
+DRAG_POWER = .3
 COUNTDOWN_TICKS_PER_SECOND = 40 #Ticks per second of gameplay
 
+PLANET_SIZE = 100
+MAP_SIZE = 200
+SCREEN_SIZE = [800,600]
+
+def rotateAroundPoint(img, radians, point = -1):
+    if point == -1:
+        point = img.get_rect().center
+    ret_img = pygame.transform.rotate(img, radians * 180/math.pi)
+    ret_img.get_rect().center = point
+    return ret_img
+
+def coordToDegree(x, y):
+    r = math.atan2(y, x)
+    h = math.dist([0,0], [x, y])
+    return r, h
+
+def moveCloser(start, end, step = 1):
+    step = abs(step)
+    if start < end:
+        start += step
+        if start > end:
+            return end
+    elif start > end:
+        start -= step
+        if start < end:
+            return end
+    return start
+
+def isPointingAt(pointA, rotA, pointB, closeness = 0):
+    a = orient(pointA, rotA, pointB, closeness)
+    return a == rotA
+        
+    
 
 def orient(position, rotation, goal, speed = 2*math.pi/10):
     # Get degree from current position to target
     goal[0] -= position[0]
     goal[1] -= position[1]
-    d = math.dist([0,0],goal)
-    goal[0] /= d
-    goal[1] /= d
     goal = math.atan2(goal[1], goal[0])
 
     # Orient self to face target
-    if goal < 0: goal += 2*math.pi
-    if rotation < 0: rotation += 2*math.pi
-    goal -= rotation
+    if math.dist([goal], [rotation]) > math.dist([goal-2*math.pi], [rotation]):
+        goal -= 2*math.pi
+    elif math.dist([goal], [rotation]) > math.dist([goal+2*math.pi], [rotation]):
+        goal += 2*math.pi
 
-    ROTATION_SPEED = 2*math.pi/10
+    if goal == rotation: return goal
 
-    if abs(goal) < ROTATION_SPEED:
-        rotation = goal
+    if goal > rotation:
+        rotationB = rotation + speed
     else:
-        if goal < math.pi and goal > 0:
-            rotation += ROTATION_SPEED
-        else:
-            rotation -= ROTATION_SPEED
-    return rotation
+        rotationB = rotation - speed
+    
+    if math.dist([rotationB], [goal]) < math.dist([rotation], [goal]):
+        return rotationB
+    return goal
+
 
 def drag(velocity):
     def _drag(spd):
@@ -37,3 +70,4 @@ def drag(velocity):
             
     velocity[0] = _drag(velocity[0])
     velocity[1] = _drag(velocity[1])
+    return velocity

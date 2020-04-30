@@ -1,29 +1,39 @@
 import math
 import random
+import resources
+import game
+import ship
 
+import utilities
+from utilities import coordToDegree, rotateAroundPoint
 import pygame
-from pygame import mixer
+from pygame import mixer, time
+
+WINDOW_SIZE = [800, 600]
 
 # Intialize the pygame
 pygame.init()
 
 # create the screen
-screen = pygame.display.set_mode((800, 600))
+screen = pygame.display.set_mode((WINDOW_SIZE[0], WINDOW_SIZE[1]))
+
+# Framerate
+clock = pygame.time.Clock()
 
 # Background
-background = pygame.image.load('background.png')
+background = resources.backgroundImg
 
 # Sound
-mixer.music.load("background.wav")
+mixer.music.load(resources.backgroundSound)
 mixer.music.play(-1)
 
 # Caption and Icon
-pygame.display.set_caption("Space Invader")
-icon = pygame.image.load('ufo.png')
+pygame.display.set_caption("Shay's Space Invader")
+icon = resources.iconImg
 pygame.display.set_icon(icon)
 
 # Player
-playerImg = pygame.image.load('player.png')
+playerImg = resources.playerImg
 playerX = 370
 playerY = 480
 playerX_change = 0
@@ -37,7 +47,7 @@ enemyY_change = []
 num_of_enemies = 6
 
 for i in range(num_of_enemies):
-    enemyImg.append(pygame.image.load('enemy.png'))
+    enemyImg.append(resources.enemyImg)
     enemyX.append(random.randint(0, 736))
     enemyY.append(random.randint(50, 150))
     enemyX_change.append(4)
@@ -48,7 +58,7 @@ for i in range(num_of_enemies):
 # Ready - You can't see the bullet on the screen
 # Fire - The bullet is currently moving
 
-bulletImg = pygame.image.load('bullet.png')
+bulletImg = resources.bulletImg
 bulletX = 0
 bulletY = 480
 bulletX_change = 0
@@ -67,8 +77,11 @@ testY = 10
 over_font = pygame.font.Font('freesansbold.ttf', 64)
 
 
-def show_score(x, y):
-    score = font.render("Score : " + str(score_value), True, (255, 255, 255))
+def show_score(x, y, txt = -1):
+    if txt == -1:
+        score = font.render("Score : " + str(score_value), True, (255, 255, 255))
+    else:
+        score = font.render(txt, True, (255,255,255))
     screen.blit(score, (x, y))
 
 
@@ -77,8 +90,6 @@ def game_over_text():
     screen.blit(over_text, (200, 250))
 
 
-def player(x, y):
-    screen.blit(playerImg, (x, y))
 
 
 def enemy(x, y, i):
@@ -98,36 +109,61 @@ def isCollision(enemyX, enemyY, bulletX, bulletY):
     else:
         return False
 
+session = game.Game()
+_enemy = ship.Kamakazi(resources.kamakaziImg, resources.kamakazi_1, resources.kamakazi_2, resources.kamakazi_3, session.player)
+session.spawnShip(_enemy)
+_enemy = ship.Mini(resources.miniImg, session.player)
+session.spawnShip(_enemy)
+
 
 # Game Loop
 running = True
 while running:
 
     # RGB = Red, Green, Blue
-    screen.fill((0, 0, 0))
     # Background Image
-    screen.blit(background, (0, 0))
+#    screen.blit(img, (200-img.get_rect().center[0], 200-img.get_rect().center[1]))
+#    screen.set_at([200,200], (255,0,0))
+#    screen.set_at([int(200+session.player.x), int(200+session.player.y)], (0,255,0))
+#    r, h = coordToDegree(session.player.x, session.player.y)
+#    screen.set_at([200, (200-int(h))], (0,255,0))
+    session.tick()
+    
+    triggers = {}
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
 
         # if keystroke is pressed check whether its right or left
-        if event.type == pygame.KEYDOWN:
+        if event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
             if event.key == pygame.K_LEFT:
-                playerX_change = -5
+                triggers["left"] = event.type == pygame.KEYDOWN
             if event.key == pygame.K_RIGHT:
-                playerX_change = 5
+                triggers["right"] = event.type == pygame.KEYDOWN
+            if event.key == pygame.K_UP:
+                triggers["up"] = event.type == pygame.KEYDOWN
+            if event.key == pygame.K_DOWN:
+                triggers["down"] = event.type == pygame.KEYDOWN
+            if event.key == pygame.K_q:
+                triggers["q"] = event.type == pygame.KEYDOWN
+            if event.key == pygame.K_e:
+                triggers["e"] = event.type == pygame.KEYDOWN
+            if event.key == pygame.K_1:
+                triggers["1"] = event.type == pygame.KEYDOWN
+            if event.key == pygame.K_2:
+                triggers["2"] = event.type == pygame.KEYDOWN
+            if event.key == pygame.K_3:
+                triggers["3"] = event.type == pygame.KEYDOWN
             if event.key == pygame.K_SPACE:
+                triggers["space"] = event.type == pygame.KEYDOWN
                 if bullet_state is "ready":
-                    bulletSound = mixer.Sound("laser.wav")
+                    bulletSound = mixer.Sound(resources.laserSound)
                     bulletSound.play()
                     # Get the current x cordinate of the spaceship
                     bulletX = playerX
                     fire_bullet(bulletX, bulletY)
 
-        if event.type == pygame.KEYUP:
-            if event.key == pygame.K_LEFT or event.key == pygame.K_RIGHT:
-                playerX_change = 0
+    session.triggerInput(triggers)
 
     # 5 = 5 + -0.1 -> 5 = 5 - 0.1
     # 5 = 5 + 0.1
@@ -159,7 +195,7 @@ while running:
         # Collision
         collision = isCollision(enemyX[i], enemyY[i], bulletX, bulletY)
         if collision:
-            explosionSound = mixer.Sound("explosion.wav")
+            explosionSound = mixer.Sound(resources.explosionSound)
             explosionSound.play()
             bulletY = 480
             bullet_state = "ready"
@@ -178,6 +214,10 @@ while running:
         fire_bullet(bulletX, bulletY)
         bulletY -= bulletY_change
 
-    player(playerX, playerY)
-    show_score(textX, testY)
+    # Player
+    screen.blit(session.draw(), [0,0])
+
+    txt = str(int(session.player.x)) + ", " + str(int(session.player.y)) + " - " + str(int(session.enemies[0].x)) + ", " + str(int(session.enemies[0].y))
+    show_score(textX, testY, txt)
     pygame.display.update()
+    clock.tick(utilities.COUNTDOWN_TICKS_PER_SECOND)

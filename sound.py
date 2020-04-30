@@ -1,6 +1,5 @@
 from pygame import mixer
-
-AUDIO_FOLDER = "audio/"
+import resources
 
 class Sound:
     def __init__(self):
@@ -9,7 +8,7 @@ class Sound:
         self.music_channels = {}
         self.channelIndex = 5
         self.MAX_INDEX = 15
-        self.loadSound(AUDIO_FOLDER + "background.wav", 'background', True)
+        self.loadSound(resources.backgroundSound, 'background', True)
         mixer.set_num_channels(self.MAX_INDEX) # Being safe and getting 15 channels
         # Channels 0-4 are for music
         # Channels 5-14 are for SFX
