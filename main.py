@@ -24,8 +24,8 @@ clock = pygame.time.Clock()
 background = resources.backgroundImg
 
 # Sound
-mixer.music.load(resources.backgroundSound)
-mixer.music.play(-1)
+#mixer.music.load(resources.backgroundSound)
+#mixer.music.play(-1)
 
 # Caption and Icon
 pygame.display.set_caption("Shay's Space Invader")
@@ -66,54 +66,31 @@ bulletY_change = 10
 bullet_state = "ready"
 
 # Score
-
-score_value = 0
 font = pygame.font.Font('freesansbold.ttf', 32)
 
-textX = 10
-testY = 10
 
 # Game Over
 over_font = pygame.font.Font('freesansbold.ttf', 64)
 
 
-def show_score(x, y, txt = -1):
-    if txt == -1:
-        score = font.render("Score : " + str(score_value), True, (255, 255, 255))
-    else:
-        score = font.render(txt, True, (255,255,255))
-    screen.blit(score, (x, y))
+def show_score(val):
+    score = font.render("Score: " + str(val), True, (255,255,255))
+    screen.blit(score, (5, 5))
 
 
 def game_over_text():
     over_text = over_font.render("GAME OVER", True, (255, 255, 255))
     screen.blit(over_text, (200, 250))
-
-
-
-
-def enemy(x, y, i):
-    screen.blit(enemyImg[i], (x, y))
-
-
-def fire_bullet(x, y):
-    global bullet_state
-    bullet_state = "fire"
-    screen.blit(bulletImg, (x + 16, y + 10))
-
-
-def isCollision(enemyX, enemyY, bulletX, bulletY):
-    distance = math.sqrt(math.pow(enemyX - bulletX, 2) + (math.pow(enemyY - bulletY, 2)))
-    if distance < 27:
-        return True
-    else:
-        return False
+    over_text = font.render("Press N to restart", True, (255, 255, 255))
+    screen.blit(over_text, (220, 320))
 
 session = game.Game()
-_enemy = ship.Kamakazi(resources.kamakaziImg, resources.kamakazi_1, resources.kamakazi_2, resources.kamakazi_3, session.player)
+_enemy = ship.Kamakazi(resources.kamakaziImg, resources.kamakazi_1, resources.kamakazi_2, resources.kamakazi_3)
 session.spawnShip(_enemy)
-_enemy = ship.Mini(resources.miniImg, session.player)
-session.spawnShip(_enemy)
+
+for n in range(30):
+    _enemy = ship.Mini(resources.miniImg)
+    session.spawnShip(_enemy)
 
 
 # Game Loop
@@ -128,6 +105,13 @@ while running:
 #    r, h = coordToDegree(session.player.x, session.player.y)
 #    screen.set_at([200, (200-int(h))], (0,255,0))
     session.tick()
+
+    while len(session.enemies) < 30:
+        if random.randint(0, 9) == 0:
+            _enemy = ship.Kamakazi(resources.kamakaziImg, resources.kamakazi_1, resources.kamakazi_2, resources.kamakazi_3)
+        else:
+            _enemy = ship.Mini(resources.miniImg)
+        session.spawnShip(_enemy)
     
     triggers = {}
     for event in pygame.event.get():
@@ -156,68 +140,17 @@ while running:
                 triggers["3"] = event.type == pygame.KEYDOWN
             if event.key == pygame.K_SPACE:
                 triggers["space"] = event.type == pygame.KEYDOWN
-                if bullet_state is "ready":
-                    bulletSound = mixer.Sound(resources.laserSound)
-                    bulletSound.play()
-                    # Get the current x cordinate of the spaceship
-                    bulletX = playerX
-                    fire_bullet(bulletX, bulletY)
+            if event.key == pygame.K_n:
+                triggers["n"] = event.type == pygame.KEYDOWN
 
     session.triggerInput(triggers)
-
-    # 5 = 5 + -0.1 -> 5 = 5 - 0.1
-    # 5 = 5 + 0.1
-
-    playerX += playerX_change
-    if playerX <= 0:
-        playerX = 0
-    elif playerX >= 736:
-        playerX = 736
-
-    # Enemy Movement
-    for i in range(num_of_enemies):
-
-        # Game Over
-        if enemyY[i] > 440:
-            for j in range(num_of_enemies):
-                enemyY[j] = 2000
-            game_over_text()
-            break
-
-        enemyX[i] += enemyX_change[i]
-        if enemyX[i] <= 0:
-            enemyX_change[i] = 4
-            enemyY[i] += enemyY_change[i]
-        elif enemyX[i] >= 736:
-            enemyX_change[i] = -4
-            enemyY[i] += enemyY_change[i]
-
-        # Collision
-        collision = isCollision(enemyX[i], enemyY[i], bulletX, bulletY)
-        if collision:
-            explosionSound = mixer.Sound(resources.explosionSound)
-            explosionSound.play()
-            bulletY = 480
-            bullet_state = "ready"
-            score_value += 1
-            enemyX[i] = random.randint(0, 736)
-            enemyY[i] = random.randint(50, 150)
-
-        enemy(enemyX[i], enemyY[i], i)
-
-    # Bullet Movement
-    if bulletY <= 0:
-        bulletY = 480
-        bullet_state = "ready"
-
-    if bullet_state is "fire":
-        fire_bullet(bulletX, bulletY)
-        bulletY -= bulletY_change
 
     # Player
     screen.blit(session.draw(), [0,0])
 
-    txt = str(int(session.player.x)) + ", " + str(int(session.player.y)) + " - " + str(int(session.enemies[0].x)) + ", " + str(int(session.enemies[0].y))
-    show_score(textX, testY, txt)
+    if session.gameOver:
+        game_over_text()
+    show_score(session.score)
+
     pygame.display.update()
     clock.tick(utilities.COUNTDOWN_TICKS_PER_SECOND)

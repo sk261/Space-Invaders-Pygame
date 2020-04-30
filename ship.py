@@ -101,6 +101,9 @@ class Player(Ship):
         self.firing = False
         self.firingCD = 0
         self.disabledCD = 0
+        self.firingTime = 0
+        self.maxFiringTime = COUNTDOWN_TICKS_PER_SECOND * 2
+        self.maxFiringTimeCD = COUNTDOWN_TICKS_PER_SECOND * 1
         self.bulletCount = 0
         self.firedBullets = []
     
@@ -109,8 +112,8 @@ class Player(Ship):
             # 5 shots/second
             return COUNTDOWN_TICKS_PER_SECOND * .2
         elif self.weapon == 1: # Homing
-            # 5 shots/second
-            return COUNTDOWN_TICKS_PER_SECOND * .2
+            # 10 shots/second
+            return COUNTDOWN_TICKS_PER_SECOND * .1
         else: # LASER
             return COUNTDOWN_TICKS_PER_SECOND
             
@@ -149,10 +152,19 @@ class Player(Ship):
             self.strafeCD -= 1
             self.strafeSpd = 0
 
+        if self.firing:
+            self.firingTime += 1
+        else:
+            self.firingTime = 0
+
         if self.firingCD <= 0 and self.firing:
+            self.firingCD = self.getFiringMaxCD()
             if self.weapon == 2:
                 self.disabledCD = self.getFiringMaxCD()
-            self.firingCD = self.getFiringMaxCD()
+            elif self.weapon == 1:
+                if self.firingTime > self.maxFiringTime:
+                    self.firingCD = self.maxFiringTimeCD
+                    self.firingTime = -self.firingCD
             self.bulletCount += 1
             pos = self.Position()
             if self.weapon == 0: # Bullet
@@ -184,7 +196,7 @@ class Player(Ship):
         self.rotationalSpeed = tempRot 
 
 class Kamakazi(Ship):
-    def __init__(self, idle, cycle1, cycle2, cycle3, player):
+    def __init__(self, idle, cycle1, cycle2, cycle3, player = None):
         super(Kamakazi, self).__init__()
         self.addImage(idle)
         self.addImage(cycle1, True)
@@ -228,7 +240,7 @@ class Kamakazi(Ship):
 
 
 class Mini(Ship):
-    def __init__(self, img, target):
+    def __init__(self, img, target = None):
         super(Mini, self).__init__()
         self.addImage(img)
         self.speed = 15 # Just barely slower than the player
@@ -248,7 +260,7 @@ class Mini(Ship):
         self.rotation = newRot
 
 class Mother(Ship):
-    def __init__(self, img, cycle1, cycle2, cycle3, target):
+    def __init__(self, img, cycle1, cycle2, cycle3, target = None):
         super(Mother, self).__init__()
         self.addImage(img)
         self.addImage(cycle1, True)

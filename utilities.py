@@ -5,7 +5,7 @@ DRAG_POWER = .3
 COUNTDOWN_TICKS_PER_SECOND = 40 #Ticks per second of gameplay
 
 PLANET_SIZE = 100
-MAP_SIZE = 200
+MAP_SIZE = 800
 SCREEN_SIZE = [800,600]
 
 def rotateAroundPoint(img, radians, point = -1):
